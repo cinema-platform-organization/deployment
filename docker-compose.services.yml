@@ -1,0 +1,112 @@
+x-logging: &logging
+    driver: json-file
+    options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+x-node-service: &node-service
+    restart: always
+    logging: *logging
+    environment:
+        NODE_ENV: production
+        OTEL_EXPORTER_OTLP_ENDPOINT: http://jaeger:4317
+    networks:
+        - cinema-platform
+
+services:
+    auth-service:
+        <<: *node-service
+        container_name: auth-service
+        image: ruslanparkhomchuk/cinema-platform:auth-latest
+        env_file:
+            - ./envs/services/.env.auth
+
+    booking-service:
+        <<: *node-service
+        container_name: booking-service
+        image: ruslanparkhomchuk/cinema-platform:booking-latest
+        env_file:
+            - ./envs/services/.env.booking
+
+    bot-service:
+        <<: *node-service
+        container_name: bot-service
+        image: ruslanparkhomchuk/cinema-platform:bot-latest
+        env_file:
+            - ./envs/services/.env.bot
+
+    gateway-service:
+        <<: *node-service
+        container_name: gateway-service
+        image: ruslanparkhomchuk/cinema-platform:gateway-latest
+        env_file:
+            - ./envs/services/.env.gateway
+        healthcheck:
+            test:
+                [
+                    "CMD",
+                    "node",
+                    "-e",
+                    "fetch('http://localhost:4000/metrics').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+                ]
+            interval: 30s
+            timeout: 5s
+            retries: 5
+            start_period: 30s
+
+    media-service:
+        container_name: media-service
+        image: ruslanparkhomchuk/cinema-platform:media-latest
+        restart: always
+        logging: *logging
+        env_file:
+            - ./envs/services/.env.media
+        networks:
+            - cinema-platform
+
+    movie-service:
+        <<: *node-service
+        container_name: movie-service
+        image: ruslanparkhomchuk/cinema-platform:movie-latest
+        env_file:
+            - ./envs/services/.env.movie
+
+    notification-service:
+        <<: *node-service
+        container_name: notification-service
+        image: ruslanparkhomchuk/cinema-platform:notification-latest
+        env_file:
+            - ./envs/services/.env.notification
+
+    payment-service:
+        <<: *node-service
+        container_name: payment-service
+        image: ruslanparkhomchuk/cinema-platform:payment-latest
+        env_file:
+            - ./envs/services/.env.payment
+
+    screening-service:
+        <<: *node-service
+        container_name: screening-service
+        image: ruslanparkhomchuk/cinema-platform:screening-latest
+        env_file:
+            - ./envs/services/.env.screening
+
+    theater-service:
+        <<: *node-service
+        container_name: theater-service
+        image: ruslanparkhomchuk/cinema-platform:theater-latest
+        env_file:
+            - ./envs/services/.env.theater
+
+    users-service:
+        <<: *node-service
+        container_name: users-service
+        image: ruslanparkhomchuk/cinema-platform:users-latest
+        env_file:
+            - ./envs/services/.env.users
+
+networks:
+    cinema-platform:
+        external: true

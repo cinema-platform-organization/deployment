@@ -1,0 +1,233 @@
+x-logging: &logging
+    driver: json-file
+    options:
+        max-size: "10m"
+        max-file: "3"
+        tag: "{{.Name}}"
+
+services:
+    postgres:
+        container_name: postgres
+        image: postgres:15
+        restart: always
+        logging: *logging
+        env_file:
+            - ./envs/infrastructure/.env.postgres
+        volumes:
+            - postgres_data:/var/lib/postgresql/data
+            - ./postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+        networks:
+            - cinema-platform
+
+    mongo:
+        container_name: mongo
+        image: mongo:6
+        restart: always
+        logging: *logging
+        env_file:
+            - ./envs/infrastructure/.env.mongo
+        volumes:
+            - mongo_data:/data/db
+        networks:
+            - cinema-platform
+
+    redis:
+        container_name: redis
+        image: redis:6.2
+        restart: always
+        logging: *logging
+        env_file:
+            - ./envs/infrastructure/.env.redis
+        command: ["sh", "-c", 'redis-server --requirepass "$$REDIS_PASSWORD"']
+        volumes:
+            - redis_data:/data
+        networks:
+            - cinema-platform
+
+    rabbitmq:
+        container_name: rabbitmq
+        image: rabbitmq:3-management
+        restart: always
+        logging: *logging
+        env_file:
+            - ./envs/infrastructure/.env.rabbitmq
+        volumes:
+            - rabbitmq_data:/var/lib/rabbitmq
+        networks:
+            - cinema-platform
+
+    postgres-exporter:
+        container_name: postgres-exporter
+        image: prometheuscommunity/postgres-exporter:v0.15.0
+        restart: always
+        logging: *logging
+        env_file:
+            - ./envs/infrastructure/.env.postgres
+        depends_on:
+            - postgres
+        networks:
+            - cinema-platform
+
+    redis-exporter:
+        container_name: redis-exporter
+        image: oliver006/redis_exporter
+        restart: always
+        logging: *logging
+        env_file:
+            - ./envs/infrastructure/.env.redis
+        environment:
+            REDIS_ADDR: redis://redis:6379
+        depends_on:
+            - redis
+        networks:
+            - cinema-platform
+
+    rabbitmq-exporter:
+        container_name: rabbitmq-exporter
+        image: kbudde/rabbitmq-exporter
+        restart: always
+        logging: *logging
+        env_file:
+            - ./envs/infrastructure/.env.rabbitmq
+        environment:
+            RABBIT_URL: http://rabbitmq:15672
+        depends_on:
+            - rabbitmq
+        networks:
+            - cinema-platform
+
+    node-exporter:
+        container_name: node-exporter
+        image: prom/node-exporter:v1.8.2
+        restart: always
+        logging: *logging
+        command:
+            - "--path.rootfs=/host"
+        pid: host
+        volumes:
+            - /:/host:ro,rslave
+        networks:
+            - cinema-platform
+
+    prometheus:
+        container_name: prometheus
+        image: prom/prometheus:v2.54.1
+        restart: always
+        logging: *logging
+        command:
+            - "--config.file=/etc/prometheus/prometheus.yml"
+            - "--storage.tsdb.path=/prometheus"
+            - "--storage.tsdb.retention.time=7d"
+        volumes:
+            - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+            - prometheus_data:/prometheus
+        networks:
+            - cinema-platform
+
+    jaeger:
+        container_name: jaeger
+        image: jaegertracing/all-in-one:1.47
+        restart: always
+        logging: *logging
+        environment:
+            COLLECTOR_OTLP_ENABLED: "true"
+            MEMORY_MAX_TRACES: "20000"
+        networks:
+            - cinema-platform
+
+    loki:
+        container_name: loki
+        image: grafana/loki:2.9.1
+        restart: always
+        logging: *logging
+        command: -config.file=/etc/loki/config.yaml
+        volumes:
+            - ./loki-config.yml:/etc/loki/config.yaml:ro
+            - loki_data:/loki
+        networks:
+            - cinema-platform
+
+    promtail:
+        container_name: promtail
+        image: grafana/promtail:2.9.1
+        restart: always
+        logging: *logging
+        command: -config.file=/etc/promtail/config.yml
+        volumes:
+            - ./promtail-config.yml:/etc/promtail/config.yml:ro
+            - /var/lib/docker/containers:/var/lib/docker/containers:ro
+            - promtail_data:/promtail
+        depends_on:
+            - loki
+        networks:
+            - cinema-platform
+
+    grafana:
+        container_name: grafana
+        image: grafana/grafana:10.2.3
+        restart: always
+        logging: *logging
+        env_file:
+            - ./envs/infrastructure/.env.grafana
+        volumes:
+            - grafana_data:/var/lib/grafana
+            - ./grafana/provisioning:/etc/grafana/provisioning:ro
+            - ./grafana/dashboards:/etc/grafana/dashboards:ro
+        depends_on:
+            - prometheus
+            - loki
+            - jaeger
+        networks:
+            - cinema-platform
+
+    nginx:
+        container_name: nginx
+        image: nginx:1.27-alpine
+        restart: always
+        logging: *logging
+        ports:
+            - "80:80"
+            - "443:443"
+        volumes:
+            - ./nginx/conf.d:/etc/nginx/conf.d:ro
+            - ./certbot/conf:/etc/letsencrypt:ro
+            - ./certbot/www:/var/www/certbot:ro
+        command:
+            [
+                "/bin/sh",
+                "-c",
+                "while :; do sleep 6h & wait $${!}; nginx -s reload; done & exec nginx -g 'daemon off;'",
+            ]
+        networks:
+            - cinema-platform
+
+    certbot:
+        container_name: certbot
+        image: certbot/certbot:v2.11.0
+        restart: always
+        logging: *logging
+        volumes:
+            - ./certbot/conf:/etc/letsencrypt
+            - ./certbot/www:/var/www/certbot
+        entrypoint:
+            [
+                "/bin/sh",
+                "-c",
+                "trap exit TERM; while :; do certbot renew --webroot -w /var/www/certbot --quiet; sleep 12h & wait $${!}; done",
+            ]
+        networks:
+            - cinema-platform
+
+volumes:
+    postgres_data:
+    mongo_data:
+    redis_data:
+    rabbitmq_data:
+    prometheus_data:
+    loki_data:
+    promtail_data:
+    grafana_data:
+
+networks:
+    cinema-platform:
+        external: true

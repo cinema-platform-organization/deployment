@@ -1,0 +1,13 @@
+.env
+envs/
+*.env
+*.env.*
+!.env.example
+.DS_Store
+Thumbs.db
+*/logs/
+logs/
+
+loki-data/
+loki-wal/
+postgres/

@@ -1,0 +1,3371 @@
+{
+  "uid": "cp-business",
+  "title": "Cinema Platform / Business",
+  "description": "Revenue, tickets, refunds and what users do: browsing, checkouts, logins, notifications",
+  "tags": [
+    "cinema-platform",
+    "business"
+  ],
+  "timezone": "browser",
+  "editable": true,
+  "graphTooltip": 1,
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "5m",
+  "time": {
+    "from": "now-7d",
+    "to": "now"
+  },
+  "timepicker": {},
+  "links": [
+    {
+      "type": "dashboards",
+      "tags": [
+        "cinema-platform"
+      ],
+      "asDropdown": false,
+      "includeVars": false,
+      "keepTime": true,
+      "title": "Dashboards",
+      "icon": "external link",
+      "targetBlank": false
+    }
+  ],
+  "templating": {
+    "list": [
+      {
+        "type": "custom",
+        "name": "bucket",
+        "label": "Group by",
+        "query": "hour,day,week,month",
+        "multi": false,
+        "includeAll": false,
+        "current": {
+          "text": "day",
+          "value": "day"
+        },
+        "options": [
+          {
+            "text": "hour",
+            "value": "hour",
+            "selected": false
+          },
+          {
+            "text": "day",
+            "value": "day",
+            "selected": true
+          },
+          {
+            "text": "week",
+            "value": "week",
+            "selected": false
+          },
+          {
+            "text": "month",
+            "value": "month",
+            "selected": false
+          }
+        ],
+        "hide": 0
+      }
+    ]
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      },
+      {
+        "datasource": {
+          "type": "prometheus",
+          "uid": "prometheus"
+        },
+        "enable": true,
+        "iconColor": "orange",
+        "name": "Service restarts",
+        "expr": "changes(process_start_time_seconds[2m]) > 0",
+        "step": "1m",
+        "titleFormat": "{{service}} restarted",
+        "textFormat": "",
+        "useValueForTime": false
+      }
+    ]
+  },
+  "panels": [
+    {
+      "type": "text",
+      "title": "",
+      "options": {
+        "mode": "markdown",
+        "content": "**Sales** comes straight from the bookings and payments databases (read-only user). Amounts are in hryvnias, days and hours are Kyiv time. Tickets and paid orders are counted by the moment they were paid; payments by when the checkout was created; refunds by when they happened. A refund deletes the tickets, so ticket counts are already net of refunds.\n\n**Activity** below is counted from successful gateway responses: actions, not money."
+      },
+      "id": 1,
+      "gridPos": {
+        "x": 0,
+        "y": 0,
+        "w": 24,
+        "h": 3
+      }
+    },
+    {
+      "type": "row",
+      "title": "Sales (selected time range)",
+      "collapsed": false,
+      "panels": [],
+      "id": 2,
+      "gridPos": {
+        "x": 0,
+        "y": 3,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Revenue",
+      "description": "Successful payments that were not refunded",
+      "datasource": {
+        "type": "postgres",
+        "uid": "payments-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "payments-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COALESCE(SUM(amount), 0) AS revenue FROM payments WHERE status = 'SUCCESS' AND $__timeFilter(created_at)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: \u20b4",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 3,
+      "gridPos": {
+        "x": 0,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Tickets sold",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COUNT(*) AS tickets FROM tickets WHERE status = 'PAID' AND $__timeFilter(paid_at)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 4,
+      "gridPos": {
+        "x": 4,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Paid orders",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COUNT(DISTINCT order_id) AS orders FROM tickets WHERE status = 'PAID' AND $__timeFilter(paid_at)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 5,
+      "gridPos": {
+        "x": 8,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Average order",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COALESCE(AVG(total), 0) AS avg FROM (SELECT SUM(price) AS total FROM tickets WHERE status = 'PAID' AND $__timeFilter(paid_at) GROUP BY order_id) o",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: \u20b4",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "-",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 6,
+      "gridPos": {
+        "x": 12,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Tickets per order",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COALESCE(AVG(n), 0) AS avg FROM (SELECT COUNT(*) AS n FROM tickets WHERE status = 'PAID' AND $__timeFilter(paid_at) GROUP BY order_id) o",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "-",
+          "mappings": [],
+          "decimals": 2
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 7,
+      "gridPos": {
+        "x": 16,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Buyers",
+      "description": "Different users who paid for at least one order",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COUNT(DISTINCT o.user_id) AS buyers FROM tickets t JOIN orders o ON o.id = t.order_id WHERE t.status = 'PAID' AND $__timeFilter(t.paid_at)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 8,
+      "gridPos": {
+        "x": 20,
+        "y": 4,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Refunded",
+      "description": "Money returned in the selected range (by refund time)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "payments-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "payments-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COALESCE(SUM(amount), 0) AS refunded FROM payments WHERE status = 'REFUNDED' AND $__timeFilter(updated_at)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: \u20b4",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 9,
+      "gridPos": {
+        "x": 0,
+        "y": 8,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Refunds",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "payments-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "payments-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COUNT(*) AS refunds FROM payments WHERE status = 'REFUNDED' AND $__timeFilter(updated_at)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 10,
+      "gridPos": {
+        "x": 4,
+        "y": 8,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Refund rate",
+      "description": "Of the payments created in the range that went through, how many were refunded later",
+      "datasource": {
+        "type": "postgres",
+        "uid": "payments-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "payments-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COUNT(*) FILTER (WHERE status = 'REFUNDED')::float / NULLIF(COUNT(*) FILTER (WHERE status IN ('SUCCESS', 'REFUNDED')), 0) AS rate FROM payments WHERE $__timeFilter(created_at)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.05
+              },
+              {
+                "color": "red",
+                "value": 0.15
+              }
+            ]
+          },
+          "noValue": "-",
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 11,
+      "gridPos": {
+        "x": 8,
+        "y": 8,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Checkout \u2192 paid",
+      "description": "Checkouts created in the range that were paid. The rest were abandoned (PENDING) or declined (FAILED).",
+      "datasource": {
+        "type": "postgres",
+        "uid": "payments-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "payments-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COUNT(*) FILTER (WHERE status IN ('SUCCESS', 'REFUNDED'))::float / NULLIF(COUNT(*), 0) AS rate FROM payments WHERE $__timeFilter(created_at)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 0.3
+              },
+              {
+                "color": "green",
+                "value": 0.6
+              }
+            ]
+          },
+          "noValue": "-",
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 12,
+      "gridPos": {
+        "x": 12,
+        "y": 8,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Declined payments",
+      "description": "LiqPay reported failure (card declined, insufficient funds, ...)",
+      "datasource": {
+        "type": "postgres",
+        "uid": "payments-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "payments-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COUNT(*) AS failed FROM payments WHERE status = 'FAILED' AND $__timeFilter(created_at)",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 13,
+      "gridPos": {
+        "x": 16,
+        "y": 8,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Seats held by unpaid orders",
+      "description": "Right now, not filtered by time. Unpaid reservations never expire, so these seats can't be sold until the order is canceled.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT COUNT(*) AS held FROM tickets WHERE status = 'RESERVED'",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 10
+              },
+              {
+                "color": "red",
+                "value": 50
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 14,
+      "gridPos": {
+        "x": 20,
+        "y": 8,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Revenue and refunds",
+      "description": "Bucket size: the `Group by` variable at the top",
+      "datasource": {
+        "type": "postgres",
+        "uid": "payments-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "payments-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT date_trunc('$bucket', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv' AS time, 'revenue' AS metric, SUM(amount) AS value FROM payments WHERE status = 'SUCCESS' AND $__timeFilter(created_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "payments-db"
+          },
+          "refId": "B",
+          "rawSql": "SELECT date_trunc('$bucket', updated_at AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv' AS time, 'refunds' AS metric, SUM(amount) AS value FROM payments WHERE status = 'REFUNDED' AND $__timeFilter(updated_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "suffix: \u20b4",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "revenue"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "refunds"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 15,
+      "gridPos": {
+        "x": 0,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Tickets sold",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT date_trunc('$bucket', paid_at AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv' AS time, 'tickets' AS metric, COUNT(*) AS value FROM tickets WHERE status = 'PAID' AND $__timeFilter(paid_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "B",
+          "rawSql": "SELECT date_trunc('$bucket', paid_at AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv' AS time, 'orders' AS metric, COUNT(DISTINCT order_id) AS value FROM tickets WHERE status = 'PAID' AND $__timeFilter(paid_at) GROUP BY 1 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "tickets"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "purple"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "orders"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 16,
+      "gridPos": {
+        "x": 12,
+        "y": 12,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Payments by status",
+      "description": "By checkout creation time. PENDING = the user never finished paying.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "payments-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "payments-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT date_trunc('$bucket', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv' AS time, status::text AS metric, COUNT(*) AS value FROM payments WHERE $__timeFilter(created_at) GROUP BY 1, 2 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "SUCCESS"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "REFUNDED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "FAILED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PENDING"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 17,
+      "gridPos": {
+        "x": 0,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Orders by status",
+      "description": "By order creation time. CANCELED = refunded after payment.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT date_trunc('$bucket', created_at AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Kyiv') AT TIME ZONE 'Europe/Kyiv' AS time, status::text AS metric, COUNT(*) AS value FROM orders WHERE $__timeFilter(created_at) GROUP BY 1, 2 ORDER BY 1",
+          "format": "time_series",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PAID"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "CANCELED"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "PENDING"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 18,
+      "gridPos": {
+        "x": 12,
+        "y": 20,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "barchart",
+      "title": "Tickets by hour of day (Kyiv)",
+      "description": "When people buy",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT h.hour::text AS hour, COUNT(t.id) AS tickets FROM generate_series(0, 23) AS h(hour) LEFT JOIN tickets t ON t.status = 'PAID' AND $__timeFilter(t.paid_at) AND EXTRACT(HOUR FROM (t.paid_at AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Kyiv')) = h.hour GROUP BY h.hour ORDER BY h.hour",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "gradientMode": "opacity"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "hour",
+        "orientation": "vertical",
+        "showValue": "never",
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "id": 19,
+      "gridPos": {
+        "x": 0,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "barchart",
+      "title": "Tickets by day of week (Kyiv)",
+      "description": "",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT d.name AS day, COUNT(t.id) AS tickets FROM (VALUES (1, 'Mon'), (2, 'Tue'), (3, 'Wed'), (4, 'Thu'), (5, 'Fri'), (6, 'Sat'), (7, 'Sun')) AS d(n, name) LEFT JOIN tickets t ON t.status = 'PAID' AND $__timeFilter(t.paid_at) AND EXTRACT(ISODOW FROM (t.paid_at AT TIME ZONE 'UTC' AT TIME ZONE 'Europe/Kyiv')) = d.n GROUP BY d.n, d.name ORDER BY d.n",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "fixed",
+            "fixedColor": "purple"
+          },
+          "custom": {
+            "fillOpacity": 80,
+            "lineWidth": 0,
+            "gradientMode": "opacity"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "xField": "day",
+        "orientation": "vertical",
+        "showValue": "never",
+        "barWidth": 0.8,
+        "groupWidth": 0.7,
+        "legend": {
+          "showLegend": false,
+          "displayMode": "list",
+          "placement": "bottom",
+          "calcs": []
+        },
+        "tooltip": {
+          "mode": "single",
+          "sort": "none"
+        },
+        "xTickLabelRotation": 0,
+        "xTickLabelSpacing": 0
+      },
+      "id": 20,
+      "gridPos": {
+        "x": 12,
+        "y": 28,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "table",
+      "title": "Top screenings",
+      "description": "Ids only: movie and hall names live in other services' databases. Open GET /screenings/{id} to see which one it is.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT screening_id, hall_id, COUNT(*) AS tickets, SUM(price) AS revenue, MAX(paid_at) AS last_sale FROM tickets WHERE status = 'PAID' AND $__timeFilter(paid_at) GROUP BY screening_id, hall_id ORDER BY tickets DESC LIMIT 20",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "screening_id": "Screening",
+              "hall_id": "Hall",
+              "tickets": "Tickets",
+              "revenue": "Revenue",
+              "last_sale": "Last sale (UTC)"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "decimals": 2,
+          "noValue": "0"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "Tickets|Revenue"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Revenue"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: \u20b4"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 21,
+      "gridPos": {
+        "x": 0,
+        "y": 36,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "type": "table",
+      "title": "Unpaid orders older than 30 minutes",
+      "description": "Not filtered by time. These hold seats: the checkout was abandoned, or the LiqPay callback never arrived.",
+      "datasource": {
+        "type": "postgres",
+        "uid": "bookings-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "bookings-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT o.id, o.user_id, o.amount, COUNT(t.id) AS seats, o.created_at, EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'UTC' - o.created_at)) AS age FROM orders o JOIN tickets t ON t.order_id = o.id WHERE o.status = 'PENDING' AND o.created_at < NOW() AT TIME ZONE 'UTC' - INTERVAL '30 minutes' GROUP BY o.id ORDER BY o.created_at LIMIT 50",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "id": "Order",
+              "user_id": "User",
+              "amount": "Amount",
+              "seats": "Seats",
+              "created_at": "Created (UTC)",
+              "age": "Age"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "decimals": 2,
+          "noValue": "0"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "Amount|Seats"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Amount"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: \u20b4"
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Age"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "s"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 22,
+      "gridPos": {
+        "x": 12,
+        "y": 36,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "type": "table",
+      "title": "Latest payments",
+      "description": "For support: find a payment by booking or LiqPay id",
+      "datasource": {
+        "type": "postgres",
+        "uid": "payments-db"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "payments-db"
+          },
+          "refId": "A",
+          "rawSql": "SELECT created_at, updated_at, status::text AS status, amount, booking_id, user_id, provider_id FROM payments WHERE $__timeFilter(created_at) ORDER BY created_at DESC LIMIT 50",
+          "format": "table",
+          "rawQuery": true,
+          "editorMode": "code"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "created_at": "Created (UTC)",
+              "updated_at": "Last change (UTC)",
+              "status": "Status",
+              "amount": "Amount",
+              "booking_id": "Booking",
+              "user_id": "User",
+              "provider_id": "LiqPay id"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "decimals": 2,
+          "noValue": "0"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Amount"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 2
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Status"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "type": "value",
+                    "options": {
+                      "SUCCESS": {
+                        "color": "green",
+                        "index": 0
+                      },
+                      "REFUNDED": {
+                        "color": "blue",
+                        "index": 1
+                      },
+                      "FAILED": {
+                        "color": "red",
+                        "index": 2
+                      },
+                      "PENDING": {
+                        "color": "text",
+                        "index": 3
+                      }
+                    }
+                  }
+                ]
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Amount"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "suffix: \u20b4"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 23,
+      "gridPos": {
+        "x": 0,
+        "y": 45,
+        "w": 24,
+        "h": 10
+      }
+    },
+    {
+      "type": "row",
+      "title": "Activity: funnel (selected time range)",
+      "collapsed": false,
+      "panels": [],
+      "id": 24,
+      "gridPos": {
+        "x": 0,
+        "y": 55,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Funnel",
+      "description": "Checkout started = seats reserved and a LiqPay checkout created. LiqPay sends a callback on every status change, so (4) is callbacks, not paid orders.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/movies/:slug\", method=\"GET\", status=~\"2..\"}[$__range])) or vector(0)",
+          "legendFormat": "1. Movie page views",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "sum(increase(http_requests_total{route=\"/seats/hall/:hallId\", method=\"GET\", status=~\"2..\"}[$__range])) or vector(0)",
+          "legendFormat": "2. Seat map opened",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "C",
+          "expr": "sum(increase(http_requests_total{route=\"/payment/init\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0)",
+          "legendFormat": "3. Checkout started",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "D",
+          "expr": "sum(increase(http_requests_total{route=\"/webhook/liqpay\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0)",
+          "legendFormat": "4. LiqPay callbacks",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "min": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "auto",
+        "sizing": "auto"
+      },
+      "id": 25,
+      "gridPos": {
+        "x": 0,
+        "y": 56,
+        "w": 12,
+        "h": 9
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Checkouts started",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/payment/init\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 26,
+      "gridPos": {
+        "x": 12,
+        "y": 56,
+        "w": 6,
+        "h": 3
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Seat already taken",
+      "description": "Checkout attempts rejected because someone else got the seat first",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/payment/init\", method=\"POST\", status=~\"409\"}[$__range])) or vector(0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 27,
+      "gridPos": {
+        "x": 18,
+        "y": 56,
+        "w": 6,
+        "h": 3
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Refunds",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/payment/refund/:id\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 28,
+      "gridPos": {
+        "x": 0,
+        "y": 65,
+        "w": 6,
+        "h": 3
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Refunds failed",
+      "description": "Booking canceled but LiqPay refund failed; check the payment-service logs",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/payment/refund/:id\", status=~\"5..\"}[$__range])) or vector(0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 29,
+      "gridPos": {
+        "x": 6,
+        "y": 65,
+        "w": 6,
+        "h": 3
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Seat map \u2192 checkout",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "(sum(increase(http_requests_total{route=\"/payment/init\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0)) / ((sum(increase(http_requests_total{route=\"/seats/hall/:hallId\", method=\"GET\", status=~\"2..\"}[$__range])) or vector(0)) > 0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "-",
+          "mappings": [],
+          "decimals": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 30,
+      "gridPos": {
+        "x": 12,
+        "y": 65,
+        "w": 6,
+        "h": 3
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Payment callback failures",
+      "description": "Confirming the booking failed and auto-refund failed too; needs manual handling",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/webhook/liqpay\", status=~\"5..\"}[$__range])) or vector(0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 1
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 31,
+      "gridPos": {
+        "x": 18,
+        "y": 65,
+        "w": 6,
+        "h": 3
+      }
+    },
+    {
+      "type": "row",
+      "title": "Activity: users",
+      "collapsed": false,
+      "panels": [],
+      "id": 32,
+      "gridPos": {
+        "x": 0,
+        "y": 68,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "stat",
+      "title": "OTP codes sent",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/auth/otp/send\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 33,
+      "gridPos": {
+        "x": 0,
+        "y": 69,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Logins (OTP)",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/auth/otp/verify\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 34,
+      "gridPos": {
+        "x": 4,
+        "y": 69,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Logins (Telegram)",
+      "description": "verify + finalize (finalize = first Telegram login, phone linked)",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "(sum(increase(http_requests_total{route=\"/auth/telegram/verify\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0)) + (sum(increase(http_requests_total{route=\"/auth/telegram/finalize\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 35,
+      "gridPos": {
+        "x": 8,
+        "y": 69,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Wrong OTP codes",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/auth/otp/verify\", status=~\"4..\"}[$__range])) or vector(0)",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "green",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 10
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 36,
+      "gridPos": {
+        "x": 12,
+        "y": 69,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Email/phone changed",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "(sum(increase(http_requests_total{route=\"/account/email/confirm\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0)) + (sum(increase(http_requests_total{route=\"/account/phone/confirm\", method=\"POST\", status=~\"2..\"}[$__range])) or vector(0))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 37,
+      "gridPos": {
+        "x": 16,
+        "y": 69,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Profile updates",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "(sum(increase(http_requests_total{route=\"/users/@me\", method=\"PATCH\", status=~\"2..\"}[$__range])) or vector(0)) + (sum(increase(http_requests_total{route=\"/users/@me/avatar\", method=\"PATCH\", status=~\"2..\"}[$__range])) or vector(0))",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "noValue": "0",
+          "mappings": [],
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "textMode": "auto",
+        "wideLayout": true
+      },
+      "id": 38,
+      "gridPos": {
+        "x": 20,
+        "y": 69,
+        "w": 4,
+        "h": 4
+      }
+    },
+    {
+      "type": "row",
+      "title": "Activity over time",
+      "collapsed": false,
+      "panels": [],
+      "id": 39,
+      "gridPos": {
+        "x": 0,
+        "y": 73,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Checkouts and refunds",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/payment/init\", method=\"POST\", status=~\"2..\"}[$__interval]))",
+          "legendFormat": "checkouts",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "editorMode": "code",
+          "interval": "5m"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "sum(increase(http_requests_total{route=\"/payment/init\", method=\"POST\", status=~\"409\"}[$__interval]))",
+          "legendFormat": "seat taken",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "editorMode": "code",
+          "interval": "5m"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "C",
+          "expr": "sum(increase(http_requests_total{route=\"/payment/refund/:id\", method=\"POST\", status=~\"2..\"}[$__interval]))",
+          "legendFormat": "refunds",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "editorMode": "code",
+          "interval": "5m"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "decimals": 0
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "checkouts"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "green"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "seat taken"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "orange"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "refunds"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "blue"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 40,
+      "gridPos": {
+        "x": 0,
+        "y": 74,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Logins",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/auth/otp/verify\", method=\"POST\", status=~\"2..\"}[$__interval]))",
+          "legendFormat": "OTP",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "editorMode": "code",
+          "interval": "5m"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "(sum(increase(http_requests_total{route=\"/auth/telegram/verify\", method=\"POST\", status=~\"2..\"}[$__interval]))) + (sum(increase(http_requests_total{route=\"/auth/telegram/finalize\", method=\"POST\", status=~\"2..\"}[$__interval])))",
+          "legendFormat": "Telegram",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "editorMode": "code",
+          "interval": "5m"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "bars",
+            "lineWidth": 1,
+            "fillOpacity": 80,
+            "gradientMode": "none",
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "normal",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 41,
+      "gridPos": {
+        "x": 12,
+        "y": 74,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Browsing",
+      "description": "",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum(increase(http_requests_total{route=\"/movies\", method=\"GET\", status=~\"2..\"}[$__interval]))",
+          "legendFormat": "movie list",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "editorMode": "code",
+          "interval": "5m"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "B",
+          "expr": "sum(increase(http_requests_total{route=\"/movies/:slug\", method=\"GET\", status=~\"2..\"}[$__interval]))",
+          "legendFormat": "movie page",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "editorMode": "code",
+          "interval": "5m"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "C",
+          "expr": "(sum(increase(http_requests_total{route=\"/screenings\", method=\"GET\", status=~\"2..\"}[$__interval]))) + (sum(increase(http_requests_total{route=\"/screenings/movie/:id\", method=\"GET\", status=~\"2..\"}[$__interval])))",
+          "legendFormat": "screening lists",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "editorMode": "code",
+          "interval": "5m"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "D",
+          "expr": "sum(increase(http_requests_total{route=\"/seats/hall/:hallId\", method=\"GET\", status=~\"2..\"}[$__interval]))",
+          "legendFormat": "seat map",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "editorMode": "code",
+          "interval": "5m"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "E",
+          "expr": "sum(increase(http_requests_total{route=\"/bookings\", method=\"GET\", status=~\"2..\"}[$__interval]))",
+          "legendFormat": "my tickets",
+          "range": true,
+          "instant": false,
+          "format": "time_series",
+          "editorMode": "code",
+          "interval": "5m"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 2,
+            "fillOpacity": 0,
+            "gradientMode": "opacity",
+            "showPoints": "never",
+            "spanNulls": true,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisSoftMin": 0
+          },
+          "decimals": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "showLegend": true,
+          "displayMode": "table",
+          "placement": "bottom",
+          "calcs": [
+            "sum"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 42,
+      "gridPos": {
+        "x": 0,
+        "y": 82,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "bargauge",
+      "title": "Notifications sent by type",
+      "description": "Emails/SMS actually sent in the selected range",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (event) (increase(rmq_events_total{status=\"success\"}[$__range]))",
+          "legendFormat": "{{event}}",
+          "range": false,
+          "instant": true,
+          "format": "time_series",
+          "editorMode": "code"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "decimals": 0,
+          "color": {
+            "mode": "thresholds"
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          },
+          "min": 0,
+          "noValue": "0"
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "orientation": "horizontal",
+        "displayMode": "gradient",
+        "showUnfilled": true,
+        "valueMode": "color",
+        "namePlacement": "auto",
+        "sizing": "auto"
+      },
+      "id": 43,
+      "gridPos": {
+        "x": 12,
+        "y": 82,
+        "w": 12,
+        "h": 8
+      }
+    },
+    {
+      "type": "row",
+      "title": "Admin activity",
+      "collapsed": false,
+      "panels": [],
+      "id": 44,
+      "gridPos": {
+        "x": 0,
+        "y": 90,
+        "w": 24,
+        "h": 1
+      }
+    },
+    {
+      "type": "table",
+      "title": "Catalog changes (selected range)",
+      "description": "Successful admin create/update/delete calls",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "refId": "A",
+          "expr": "sum by (method, route) (increase(http_requests_total{method=~\"POST|PATCH|DELETE\", route=~\"/(movies|categories|theaters|halls|seats|screenings).*\", status=~\"2..\"}[$__range])) > 0",
+          "legendFormat": "__auto",
+          "range": false,
+          "instant": true,
+          "format": "table",
+          "editorMode": "code"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true
+            },
+            "renameByName": {
+              "method": "Method",
+              "route": "Route",
+              "Value": "Count"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto",
+            "cellOptions": {
+              "type": "auto"
+            },
+            "filterable": true
+          },
+          "decimals": 2,
+          "noValue": "0"
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Count"
+            },
+            "properties": [
+              {
+                "id": "decimals",
+                "value": 0
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "cellHeight": "sm",
+        "sortBy": [
+          {
+            "displayName": "Count",
+            "desc": true
+          }
+        ],
+        "footer": {
+          "show": false,
+          "reducer": [
+            "sum"
+          ],
+          "fields": ""
+        }
+      },
+      "id": 45,
+      "gridPos": {
+        "x": 0,
+        "y": 91,
+        "w": 24,
+        "h": 8
+      }
+    }
+  ]
+}
